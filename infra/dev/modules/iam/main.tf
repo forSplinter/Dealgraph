@@ -19,3 +19,11 @@ resource "google_project_iam_member" "bastion_sa_roles" {
   role     = each.value
   member   = "serviceAccount:${google_service_account.bastion_sa.email}"
 }
+
+resource "google_storage_bucket_iam_member" "bastion_backups" {
+    bucket = var.backups_name
+    role = "roles/storage.objectCreator"
+    member = "serviceAccount:${google_service_account.bastion_sa.email}"
+}
+
+#TODO: create the iam roles for each service that will use our api
