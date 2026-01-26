@@ -7,6 +7,16 @@ module "networking" {
     vpc_cidr_public = var.vpc_cidr_public
     vpc_name = var.vpc_name
 }
+module "compute" {
+    source = "./modules/compute/"
+    env = var.env
+    project_id = var.project_id
+    zone = var.zone
+    vm_ip_bastion = module.networking.network //TODO: make sure to change this one later, cause the name is not accurate and can lead to confusion 
+    bastion_sa_email = module.iam.bastion_sa_email 
+    privatenetwork_subnet = module.networking.privatenetwork_subnet[0]
+    region = var.region
+}
 module "bastion-host_iap-tunneling" {
   source  = "terraform-google-modules/bastion-host/google//modules/iap-tunneling"
   version = "9.0.0"
@@ -15,7 +25,7 @@ module "bastion-host_iap-tunneling" {
   service_accounts = ["rassou.muganga@gmail.com"]
   create_firewall_rule = false
   instances = [{
-    name = "${var.env}-bastion-nfs"
+    name = module.compute.bastion_name
     zone = var.zone
   }]
   members = [

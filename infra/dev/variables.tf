@@ -23,3 +23,7 @@ variable "vpc_cidr_public" {
 variable "zone" {
     type = string
 }
+
+variable "vm_ip_bastion" {
+    type = string
+}

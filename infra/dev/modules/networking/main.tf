@@ -141,6 +141,12 @@ resource "google_compute_router_nat" "nat" {
           name = subnetwork.value.self_link
           source_ip_ranges_to_nat = ["ALL_IP_RANGES"]
         }
-      
+    }
+    depends_on = [ 
+        google_compute_address.address,
+        google_compute_subnetwork.vpc_private_subnet
+    ]
+    lifecycle {
+      create_before_destroy = false
     }
 }
