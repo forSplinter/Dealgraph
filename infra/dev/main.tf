@@ -22,3 +22,9 @@ module "bastion-host_iap-tunneling" {
     "user:rassou.muganga@gmail.com"
   ]
 }
+
+module "iam" {
+  source = "./modules/iam/"
+  project_id = var.project_id
+  env = var.env
+}
