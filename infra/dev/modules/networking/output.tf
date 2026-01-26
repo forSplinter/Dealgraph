@@ -1,5 +1,5 @@
 output "network" {
-    value = google_compute_network.vpc_network
+    value = google_compute_network.vpc_network.self_link
     description = "Vpc have being created"
 }
 
@@ -9,10 +9,10 @@ output "network_id" {
 }
 
 output "privatenetwork_subnet" {
-    value = google_compute_subnetwork.vpc_private_subnet.name
+    value = google_compute_subnetwork.vpc_private_subnet.*.name
     description = "Private subnet"
 }
 
 output "NAT-IPs" {
-    value = google_compute_sub.address.*.address
+    value = google_compute_address.address.*.address
 }

@@ -11,7 +11,7 @@ module "bastion-host_iap-tunneling" {
   source  = "terraform-google-modules/bastion-host/google//modules/iap-tunneling"
   version = "9.0.0"
   project = var.project_id
-  network = module.networking.vpc_network
+  network = module.networking.network
   service_accounts = ["rassou.muganga@gmail.com"]
   create_firewall_rule = false
   instances = [{

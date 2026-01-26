@@ -1,6 +1,7 @@
 resource "google_service_account" "bastion_sa" {
   account_id   = "${var.env}-bastion-sa"
   display_name = "Bastion Host Service Account"
+  project = var.project_id
 }
 
 locals {

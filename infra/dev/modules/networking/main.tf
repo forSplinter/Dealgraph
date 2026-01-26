@@ -12,6 +12,7 @@ resource "google_compute_subnetwork" "vpc_public_subnet" {
     name = "${var.env}-public-subnet-${count.index + 1}"
     ip_cidr_range = element(var.vpc_cidr_public, count.index)
     region = var.region
+    project = var.project_id
     network = google_compute_network.vpc_network.id
     private_ip_google_access =  true
     stack_type = "IPV4_ONLY"
@@ -22,12 +23,14 @@ resource "google_compute_subnetwork" "vpc_private_subnet" {
     name = "${var.env}-private-subnet-${count.index + 1}"
     ip_cidr_range = element(var.vpc_cidr_private, count.index)
     region = var.region
+    project = var.project_id
     network = google_compute_network.vpc_network.id
     private_ip_google_access = true
     stack_type = "IPV4_ONLY"
 }
 
 resource "google_compute_route" "public_route" {
+    project = var.project_id
     name = "${var.env}-network-route"
     dest_range = "0.0.0.0/0"
     network = google_compute_network.vpc_network.name
@@ -39,6 +42,7 @@ resource "google_compute_route" "public_route" {
 resource "google_compute_firewall" "allow-internal" {
     name = "${var.env}-fw-internal-access"
     network = google_compute_network.vpc_network.id
+    project = var.project_id
     allow {
         protocol = "icmp"
     } 
@@ -55,6 +59,7 @@ resource "google_compute_firewall" "allow-internal" {
 #TODO: bastion and iap next 
 resource "google_compute_firewall" "allow_ssh" {
     name = "${var.env}-fw-ssh"
+    project = var.project_id
     network = google_compute_network.vpc_network.id
     allow {
       protocol = "tcp"
@@ -67,6 +72,7 @@ resource "google_compute_firewall" "allow_ssh" {
 #TODO: allow https before i forget
 resource "google_compute_firewall" "allow_http" {
     name = "${var.env}-fw-http"
+    project = var.project_id
     network = google_compute_network.vpc_network.id
     allow {
       protocol = "tcp"
@@ -79,6 +85,7 @@ resource "google_compute_firewall" "allow_http" {
 # Allow kafka connect using firewal
 resource "google_compute_firewall" "allow_kafka" {
     name = "${var.env}-fw-kafka"
+    project = var.project_id
     network = google_compute_network.vpc_network.id
     allow {
       protocol = "tcp"
@@ -91,6 +98,7 @@ resource "google_compute_firewall" "allow_kafka" {
 # Allow neo4j
 resource "google_compute_firewall" "allow-neo4j" {
   name = "${var.env}-fw-neo4j"
+  project = var.project_id
   network = google_compute_network.vpc_network.id
   allow {
     protocol = "tcp"
@@ -104,12 +112,14 @@ resource "google_compute_firewall" "allow-neo4j" {
 resource "google_compute_router" "router" {
     name = "${var.env}-router"
     region = var.region
+    project = var.project_id
     network = google_compute_network.vpc_network.id
   
 }
 resource "google_compute_address" "address" {
     count = 2
     name = "${var.env}-address-${count.index}"
+    project = var.project_id
     region = var.region
     lifecycle {
       create_before_destroy = true
@@ -120,6 +130,7 @@ resource "google_compute_router_nat" "nat" {
     name = "${var.env}-nat"
     router = google_compute_router.router.name
     region = var.region
+    project = var.project_id
 
     nat_ip_allocate_option = "MANUAL_ONLY"
     nat_ips = google_compute_address.address.*.self_link
