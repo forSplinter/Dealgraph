@@ -1,0 +1,50 @@
+services:
+  spark-master:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: spark-master
+    hostname: spark-master
+    environment:
+      - SPARK_WORKLOAD=master
+    ports:
+      - "8080:8080"
+      - "7000:7000"
+    networks:
+      - dealgraph-network
+
+  spark-worker-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: spark-worker-1
+    hostname: spark-worker-1
+    environment:
+      - SPARK_WORKLOAD=worker
+      - SPARK_MASTER=spark://spark-master:7077
+    ports:
+      - "8081:8081"
+    depends_on:
+      - spark-master
+    networks:
+      - dealgraph-network
+
+  spark-worker-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: spark-worker-2
+    hostname: spark-worker-2
+    environment:
+      - SPARK_WORKLOAD=worker
+      - SPARK_MASTER=spark://spark-master:7077
+    ports:
+      - "8082:8081"
+    depends_on:
+      - spark-master
+    networks:
+      - dealgraph-network
+
+networks:
+  dealgraph-network:
+    driver: bridge
