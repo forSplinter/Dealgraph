@@ -104,5 +104,4 @@ resource "google_storage_bucket_iam_member" "kafka_raw" {
 }
 #TODO: I also need to add the permission for bigQuery on kafka
 
-
 #TODO: big flemme but i forget to do the iam role for bigqueri i will to that later or one day for ensure 

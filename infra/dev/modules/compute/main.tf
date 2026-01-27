@@ -49,3 +49,5 @@ resource "google_compute_instance" "bastion" {
     }
 
 }
+
+#TODO: VM for kafka confluent and for Neo4j
