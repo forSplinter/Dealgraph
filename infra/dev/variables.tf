@@ -27,3 +27,7 @@ variable "zone" {
 variable "vm_ip_bastion" {
     type = string
 }
+
+variable "owner_gcp" {
+  type = string
+}

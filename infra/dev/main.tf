@@ -37,6 +37,8 @@ module "iam" {
   project_id = var.project_id
   env = var.env
   backups_name = module.storages.backups_name
+  preprocessed_bucket_name = module.storages.preprocessed_bucket_name
+  raw_bucket_name = module.storages.raw_bucket_name
 }
 
 module "storages" {
@@ -44,4 +46,13 @@ module "storages" {
     project_id = var.project_id
     env = var.env
     region = var.region
+}
+
+module "bigquery"{
+    source = "./modules/bigquery/"
+    project_id = var.project_id
+    env = var.env
+    region = var.region
+    kafka_sa_email = module.iam.kafka_sa_email
+    owner_gcp = var.owner_gcp
 }
