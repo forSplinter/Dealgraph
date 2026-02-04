@@ -1,4 +1,147 @@
 services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-kestra}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kestra}
+      POSTGRES_DB: ${POSTGRES_DB:-delagraph-kestra}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dealgraph-network
+
+  kestra-scheduler:
+    image: kestra/kestra:latest
+    pull_policy: if_not_present
+    user: root
+    command: server scheduler
+    volumes:
+      - kestra-data:/app/storage
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/kestra-wd:/tmp/kestra-wd
+      - ./pipeline/flows:/local_flows
+    environment:
+      KESTRA_CONFIGURATION: &common_configuration |
+        datasources:
+          postgres:
+            url: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+            driver-class-name: org.postgresql.Driver
+            username: ${POSTGRES_USER}
+            password: ${POSTGRES_PASSWORD}
+
+        kestra:
+          server:
+            basic-auth:
+              username: ${KESTRA_BASIC_AUTH_USER}
+              password: ${KESTRA_BASIC_AUTH_PASSWORD}
+
+          repository:
+            type: postgres
+
+          storage:
+            type: local
+            local:
+              base-path: "/app/storage"
+
+          queue:
+            type: postgres
+
+          tasks:
+            tmp-dir:
+              path: /tmp/kestra-wd/tmp
+          url: http://localhost:8090/
+        micronaut:
+          io:
+            watch:
+              enabled: true
+              paths:
+                - /local_flows
+    ports:
+      - "8084-8085:8081"
+    depends_on:
+      postgres:
+        condition: service_started
+    networks:
+      - dealgraph-network
+
+  kestra-worker:
+    image: kestra/kestra:latest
+    pull_policy: if_not_present
+    user: root
+    command: server worker
+    deploy:
+      replicas: 2
+    volumes:
+      - kestra-data:/app/storage
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/kestra-wd:/tmp/kestra-wd
+      - ./pipeline/flows:/local_flows
+    environment:
+      KESTRA_CONFIGURATION: *common_configuration
+    ports:
+      - "8086-8087:8081"
+    depends_on:
+      postgres:
+        condition: service_started
+    networks:
+      - dealgraph-network
+
+  kestra-executor:
+    image: kestra/kestra:latest
+    pull_policy: if_not_present
+    user: root
+    command: server executor
+    deploy:
+      replicas: 2
+    volumes:
+      - kestra-data:/app/storage
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/kestra-wd:/tmp/kestra-wd
+      - ./pipeline/flows:/local_flows
+    environment:
+      KESTRA_CONFIGURATION: *common_configuration
+    ports:
+      - "8088-8089:8081"
+    depends_on:
+      postgres:
+        condition: service_started
+    networks:
+      - dealgraph-network
+
+  kestra-webserver:
+    image: kestra/kestra:latest
+    pull_policy: if_not_present
+    user: root
+    command: server webserver
+    deploy:
+      replicas: 1
+    volumes:
+      - kestra-data:/app/storage
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/kestra-wd:/tmp/kestra-wd
+      - ./pipeline/flows:/local_flows
+    environment:
+      KESTRA_CONFIGURATION: *common_configuration
+      KESTRA_URL: ${KESTRA_URL:-http://localhost:8090/}
+    ports:
+      - "8090:8080"
+      - "8091:8081"
+    depends_on:
+      postgres:
+        condition: service_started
+    networks:
+      - dealgraph-network
+
   spark-master:
     build:
       context: .
@@ -6,10 +149,16 @@ services:
     container_name: spark-master
     hostname: spark-master
     environment:
-      - SPARK_WORKLOAD=master
+      SPARK_WORKLOAD: master
     ports:
       - "8080:8080"
       - "7000:7000"
+    healthcheck:
+      test:
+        ["CMD-SHELL", "timeout 5 bash -c '</dev/tcp/spark-master/7077' || 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - dealgraph-network
 
@@ -20,8 +169,8 @@ services:
     container_name: spark-worker-1
     hostname: spark-worker-1
     environment:
-      - SPARK_WORKLOAD=worker
-      - SPARK_MASTER=spark://spark-master:7077
+      SPARK_WORKLOAD: worker
+      SPARK_MASTER: spark://spark-master:7077
     ports:
       - "8081:8081"
     depends_on:
@@ -36,14 +185,18 @@ services:
     container_name: spark-worker-2
     hostname: spark-worker-2
     environment:
-      - SPARK_WORKLOAD=worker
-      - SPARK_MASTER=spark://spark-master:7077
+      SPARK_WORKLOAD: worker
+      SPARK_MASTER: spark://spark-master:7077
     ports:
       - "8082:8081"
     depends_on:
       - spark-master
     networks:
       - dealgraph-network
+
+volumes:
+  postgres_data:
+  kestra-data:
 
 networks:
   dealgraph-network:
